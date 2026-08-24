@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { strFromU8, unzipSync } from "fflate";
 import {
+  createApplePackage,
   createMetalShader,
   createStandaloneWeb,
   createSwiftUI,
@@ -19,5 +21,21 @@ describe("code exports", () => {
     expect(swift).toContain("ShaderLibrary.liquidOrb");
     expect(swift).toContain("green:");
     expect(createMetalShader()).toContain("[[ stitchable ]] half4 liquidOrb");
+  });
+
+  it("packages the Apple export as a complete ZIP", () => {
+    const files = unzipSync(createApplePackage(presets[0]));
+    expect(Object.keys(files)).toEqual(
+      expect.arrayContaining([
+        "LiquidOrbView.swift",
+        "LiquidOrb.metal",
+        "README.txt",
+      ]),
+    );
+    expect(strFromU8(files["LiquidOrbView.swift"])).toContain(
+      "ShaderLibrary.liquidOrb",
+    );
+    expect(strFromU8(files["LiquidOrb.metal"])).toContain("[[ stitchable ]]");
+    expect(strFromU8(files["README.txt"])).toContain("iOS 17+");
   });
 });

@@ -14,9 +14,9 @@ import type { OrbConfig } from "./types";
 import { OrbRenderer } from "./renderer";
 import { decodeConfig, encodeConfig } from "./config";
 import {
-  createMetalShader,
+  createApplePackage,
   createStandaloneWeb,
-  createSwiftUI,
+  downloadBinary,
   downloadText,
 } from "./code-export";
 const copy = (x: OrbConfig) => JSON.parse(JSON.stringify(x)) as OrbConfig;
@@ -156,10 +156,13 @@ export function App() {
     flash("獨立 Web 頁面已匯出");
   };
   const exportSwiftUI = () => {
-    downloadText("LiquidOrbView.swift", createSwiftUI(config), "text/x-swift");
-    downloadText("LiquidOrb.metal", createMetalShader(), "text/plain");
+    downloadBinary(
+      "LiquidOrb-Apple.zip",
+      createApplePackage(config),
+      "application/zip",
+    );
     setExportOpen(false);
-    flash("SwiftUI 與 Metal 程式碼已匯出");
+    flash("SwiftUI＋Metal ZIP 已匯出");
   };
   return (
     <main>
@@ -204,7 +207,7 @@ export function App() {
                   <FileCode2 />
                   <span>
                     <b>SwiftUI + Metal</b>
-                    <small>兩個檔案，可加入 Apple 專案</small>
+                    <small>ZIP 內含 SwiftUI、Metal 與說明</small>
                   </span>
                 </button>
               </div>

@@ -1,3 +1,4 @@
+import { strToU8, zipSync } from "fflate";
 import { shader } from "./shader";
 import type { OrbConfig } from "./types";
 
@@ -16,12 +17,29 @@ export function downloadText(
   content: string,
   type = "text/plain",
 ) {
-  const url = URL.createObjectURL(new Blob([content], { type }));
+  downloadBlob(filename, new Blob([content], { type }));
+}
+
+function downloadBlob(filename: string, blob: Blob) {
+  const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.download = filename;
   anchor.href = url;
+  anchor.style.display = "none";
+  document.body.append(anchor);
   anchor.click();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
+  setTimeout(() => {
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }, 1000);
+}
+
+export function downloadBinary(
+  filename: string,
+  content: Uint8Array,
+  type = "application/octet-stream",
+) {
+  downloadBlob(filename, new Blob([new Uint8Array(content)], { type }));
 }
 
 export function createStandaloneWeb(config: OrbConfig): string {
@@ -88,4 +106,17 @@ using namespace metal;
     half3 orb = color * half(0.55 + fresnel * 0.9) + half3(fresnel * 0.3);
     return half4(mix(background + c1.rgb * half(aura), orb, half(edge)), 1.0h);
 }`;
+}
+
+export function createApplePackage(config: OrbConfig): Uint8Array {
+  return zipSync(
+    {
+      "LiquidOrbView.swift": strToU8(createSwiftUI(config)),
+      "LiquidOrb.metal": strToU8(createMetalShader()),
+      "README.txt": strToU8(
+        "Liquid Orb Studio Apple export\n\nAdd LiquidOrbView.swift and LiquidOrb.metal to an iOS 17+ or macOS 14+ SwiftUI project target. The Metal file is loaded through SwiftUI ShaderLibrary.\n",
+      ),
+    },
+    { level: 6 },
+  );
 }
