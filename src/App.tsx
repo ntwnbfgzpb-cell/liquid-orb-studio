@@ -116,8 +116,18 @@ export function App() {
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [exportOpen]);
-  const set = (k: keyof OrbConfig, v: number | string) =>
+  const clearSharedHash = () => {
+    if (location.hash)
+      history.replaceState(null, "", location.pathname + location.search);
+  };
+  const set = (k: keyof OrbConfig, v: number | string) => {
+    clearSharedHash();
     setConfig((s) => ({ ...s, [k]: v }));
+  };
+  const selectPreset = (preset: OrbConfig) => {
+    clearSharedHash();
+    setConfig(copy(preset));
+  };
   const flash = (s: string) => {
     setNotice(s);
     setTimeout(() => setNotice(""), 1800);
@@ -209,7 +219,7 @@ export function App() {
             <button
               className={p.name === config.name ? "preset active" : "preset"}
               key={p.name}
-              onClick={() => setConfig(copy(p))}
+              onClick={() => selectPreset(p)}
             >
               <span
                 className="mini"
@@ -244,14 +254,15 @@ export function App() {
                 <input
                   type="color"
                   value={c}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    clearSharedHash();
                     setConfig((s) => ({
                       ...s,
                       colors: s.colors.map((x, j) =>
                         j === i ? e.target.value : x,
                       ) as OrbConfig["colors"],
-                    }))
-                  }
+                    }));
+                  }}
                 />
                 <code>{c.toUpperCase()}</code>
               </label>
@@ -297,7 +308,7 @@ export function App() {
             {paused ? <Play /> : <Pause />}
             {paused ? "播放" : "暫停"}
           </button>
-          <button onClick={() => setConfig(copy(presets[0]))}>
+          <button onClick={() => selectPreset(presets[0])}>
             <RotateCcw />
             重設
           </button>
