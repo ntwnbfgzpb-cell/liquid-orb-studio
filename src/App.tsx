@@ -55,7 +55,8 @@ const groups = [
 ] as const;
 export function App() {
   const canvas = useRef<HTMLCanvasElement>(null),
-    renderer = useRef<OrbRenderer | null>(null);
+    renderer = useRef<OrbRenderer | null>(null),
+    exportMenu = useRef<HTMLDivElement>(null);
   const [config, setConfig] = useState<OrbConfig>(() => {
     try {
       return decodeConfig(location.hash.slice(1));
@@ -99,20 +100,38 @@ export function App() {
   useEffect(() => {
     if (renderer.current) renderer.current.config = config;
   }, [config]);
+  useEffect(() => {
+    if (!exportOpen) return;
+    const closeOnPointer = (event: PointerEvent) => {
+      if (!exportMenu.current?.contains(event.target as Node))
+        setExportOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setExportOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnPointer);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnPointer);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [exportOpen]);
   const set = (k: keyof OrbConfig, v: number | string) =>
     setConfig((s) => ({ ...s, [k]: v }));
   const flash = (s: string) => {
     setNotice(s);
     setTimeout(() => setNotice(""), 1800);
   };
-  const share = async () => {
+  const share = () => {
     location.hash = encodeConfig(config);
-    try {
-      await navigator.clipboard.writeText(location.href);
-      flash("分享連結已複製");
-    } catch {
+    if (!navigator.clipboard) {
       flash("網址已更新，請從瀏覽器網址列複製");
+      return;
     }
+    void navigator.clipboard
+      .writeText(location.href)
+      .then(() => flash("分享連結已複製"))
+      .catch(() => flash("網址已更新，請從瀏覽器網址列複製"));
   };
   const shot = () => {
     const a = document.createElement("a");
@@ -144,11 +163,15 @@ export function App() {
             <Link />
             分享
           </button>
-          <button onClick={shot}>
+          <button
+            onClick={shot}
+            disabled={!ready}
+            title={!ready ? "WebGPU 就緒後才能截圖" : undefined}
+          >
             <Camera />
             截圖
           </button>
-          <div className="export-wrap">
+          <div className="export-wrap" ref={exportMenu}>
             <button
               className="primary"
               onClick={() => setExportOpen((open) => !open)}
@@ -263,6 +286,8 @@ export function App() {
         <span>{fps || "--"} FPS</span>
         <div className="transport">
           <button
+            disabled={!ready}
+            title={!ready ? "WebGPU 就緒後才能控制動畫" : undefined}
             onClick={() => {
               const p = !paused;
               setPaused(p);

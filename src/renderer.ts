@@ -27,7 +27,7 @@ export class OrbRenderer {
   async init() {
     if (!navigator.gpu) throw Error("WebGPU unavailable");
     const adapter = await navigator.gpu.requestAdapter();
-    if (!adapter) throw Error("No GPU adapter");
+    if (!adapter) throw Error("此裝置沒有可用的 WebGPU 繪圖介面");
     this.device = await adapter.requestDevice();
     if (this.destroyed) {
       this.device.destroy();

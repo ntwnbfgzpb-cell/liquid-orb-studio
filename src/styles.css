@@ -71,6 +71,14 @@ header {
   border-color: #526887;
   background: #111a2a;
 }
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+button:disabled:hover {
+  border-color: #2a3852;
+  background: #0b111d;
+}
 .actions .primary {
   border-color: #7457ef;
   background: linear-gradient(135deg, #6d45e7, #8229dc);
