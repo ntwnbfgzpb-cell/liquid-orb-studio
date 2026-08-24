@@ -10,10 +10,10 @@ Liquid Orb Studio is a real-time WebGPU liquid-glass orb editor. Choose a preset
 
 ## What you can do
 
-- Start with six liquid-glass orb presets.
+- Start with ten liquid-glass and crystal material presets.
 - Adjust three colors, animation speed, turbulence, and swirl.
-- Control size, surface detail, asymmetry, refraction, thickness, and dispersion.
-- Fine-tune glow intensity and radius.
+- Control size, surface detail, asymmetry, refraction, thickness, dispersion, and smoothness.
+- Fine-tune reflection, caustics, glow, bloom, and radius.
 - Pause or resume the animation and monitor FPS.
 - Create a shareable URL containing the current settings.
 - Download the current view as a PNG image.

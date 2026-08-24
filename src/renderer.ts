@@ -120,6 +120,7 @@ export class OrbRenderer {
       data.set([c.scale, c.detail, c.asymmetry, c.turbulence], 16);
       data.set([c.refraction, c.thickness, c.dispersion, c.swirl], 20);
       data.set([c.glow, c.glowRadius, 0, 0], 24);
+      data.set([c.smoothness, c.reflection, c.caustics, c.bloom], 28);
       this.device.queue.writeBuffer(this.buffer, 0, data);
       const enc = this.device.createCommandEncoder();
       const pass = enc.beginRenderPass({

@@ -41,7 +41,7 @@ describe("code exports", () => {
   });
 
   it("declares mutated WGSL values as variables", () => {
-    expect(shader).toContain("var glass=");
-    expect(shader).not.toContain("let glass=");
+    expect(shader).toContain("var glassColor =");
+    expect(shader).not.toContain("let glassColor =");
   });
 });

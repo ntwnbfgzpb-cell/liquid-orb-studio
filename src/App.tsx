@@ -44,6 +44,8 @@ const groups = [
       ["折射率", "refraction", 1, 2, 0.01],
       ["厚度", "thickness", 0, 1, 0.01],
       ["色散", "dispersion", 0, 1, 0.01],
+      ["平滑度", "smoothness", 0, 1, 0.01],
+      ["倒影", "reflection", 0, 1.5, 0.01],
     ],
   },
   {
@@ -51,6 +53,8 @@ const groups = [
     items: [
       ["強度", "glow", 0, 2, 0.01],
       ["半徑", "glowRadius", 0.5, 2, 0.01],
+      ["焦散", "caustics", 0, 2, 0.01],
+      ["泛光", "bloom", 0, 1.5, 0.01],
     ],
   },
 ] as const;

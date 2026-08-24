@@ -47,7 +47,7 @@ export function createStandaloneWeb(config: OrbConfig): string {
 const config=${safeJson(config)};const shader=${safeJson(shader)};
 const canvas=document.querySelector('#orb'),error=document.querySelector('#error');
 const hex=v=>{const n=parseInt(v.slice(1),16);return [((n>>16)&255)/255,((n>>8)&255)/255,(n&255)/255,1]};
-async function start(){if(!navigator.gpu)throw Error('WebGPU unavailable');const adapter=await navigator.gpu.requestAdapter();if(!adapter)throw Error('No adapter');const device=await adapter.requestDevice(),context=canvas.getContext('webgpu'),format=navigator.gpu.getPreferredCanvasFormat();context.configure({device,format,alphaMode:'premultiplied'});const buffer=device.createBuffer({size:160,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),module=device.createShaderModule({code:shader}),pipeline=device.createRenderPipeline({layout:'auto',vertex:{module,entryPoint:'vs'},fragment:{module,entryPoint:'fs',targets:[{format}]},primitive:{topology:'triangle-list'}}),bind=device.createBindGroup({layout:pipeline.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer}}]});const begin=performance.now();function frame(now){const d=Math.min(devicePixelRatio,2),w=Math.floor(canvas.clientWidth*d),h=Math.floor(canvas.clientHeight*d);if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}const data=new Float32Array(40);data.set([w,h,(now-begin)/1000,config.speed],0);data.set(hex(config.colors[0]),4);data.set(hex(config.colors[1]),8);data.set(hex(config.colors[2]),12);data.set([config.scale,config.detail,config.asymmetry,config.turbulence],16);data.set([config.refraction,config.thickness,config.dispersion,config.swirl],20);data.set([config.glow,config.glowRadius,0,0],24);device.queue.writeBuffer(buffer,0,data);const encoder=device.createCommandEncoder(),pass=encoder.beginRenderPass({colorAttachments:[{view:context.getCurrentTexture().createView(),clearValue:{r:.005,g:.008,b:.018,a:1},loadOp:'clear',storeOp:'store'}]});pass.setPipeline(pipeline);pass.setBindGroup(0,bind);pass.draw(3);pass.end();device.queue.submit([encoder.finish()]);requestAnimationFrame(frame)}requestAnimationFrame(frame)}start().catch(reason=>{console.error(reason);canvas.hidden=true;error.style.display='grid'});
+async function start(){if(!navigator.gpu)throw Error('WebGPU unavailable');const adapter=await navigator.gpu.requestAdapter();if(!adapter)throw Error('No adapter');const device=await adapter.requestDevice(),context=canvas.getContext('webgpu'),format=navigator.gpu.getPreferredCanvasFormat();context.configure({device,format,alphaMode:'premultiplied'});const buffer=device.createBuffer({size:160,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST}),module=device.createShaderModule({code:shader}),pipeline=device.createRenderPipeline({layout:'auto',vertex:{module,entryPoint:'vs'},fragment:{module,entryPoint:'fs',targets:[{format}]},primitive:{topology:'triangle-list'}}),bind=device.createBindGroup({layout:pipeline.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer}}]});const begin=performance.now();function frame(now){const d=Math.min(devicePixelRatio,2),w=Math.floor(canvas.clientWidth*d),h=Math.floor(canvas.clientHeight*d);if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}const data=new Float32Array(40);data.set([w,h,(now-begin)/1000,config.speed],0);data.set(hex(config.colors[0]),4);data.set(hex(config.colors[1]),8);data.set(hex(config.colors[2]),12);data.set([config.scale,config.detail,config.asymmetry,config.turbulence],16);data.set([config.refraction,config.thickness,config.dispersion,config.swirl],20);data.set([config.glow,config.glowRadius,0,0],24);data.set([config.smoothness,config.reflection,config.caustics,config.bloom],28);device.queue.writeBuffer(buffer,0,data);const encoder=device.createCommandEncoder(),pass=encoder.beginRenderPass({colorAttachments:[{view:context.getCurrentTexture().createView(),clearValue:{r:.005,g:.008,b:.018,a:1},loadOp:'clear',storeOp:'store'}]});pass.setPipeline(pipeline);pass.setBindGroup(0,bind);pass.draw(3);pass.end();device.queue.submit([encoder.finish()]);requestAnimationFrame(frame)}requestAnimationFrame(frame)}start().catch(reason=>{console.error(reason);canvas.hidden=true;error.style.display='grid'});
 </script></body></html>`;
 }
 
@@ -72,7 +72,12 @@ struct LiquidOrbView: View {
                             .float(${config.scale.toFixed(3)}),
                             .float(${config.detail.toFixed(3)}),
                             .float(${config.asymmetry.toFixed(3)}),
-                            .float(${config.glow.toFixed(3)})
+                            .float(${config.glow.toFixed(3)}),
+                            .float(${config.dispersion.toFixed(3)}),
+                            .float(${config.smoothness.toFixed(3)}),
+                            .float(${config.reflection.toFixed(3)}),
+                            .float(${config.caustics.toFixed(3)}),
+                            .float(${config.bloom.toFixed(3)})
                         )
                     )
             }
@@ -88,7 +93,8 @@ using namespace metal;
 [[ stitchable ]] half4 liquidOrb(
     float2 position, half4 currentColor, float2 size, float time,
     half4 c1, half4 c2, half4 c3, float scale, float detail,
-    float asymmetry, float glow
+    float asymmetry, float glow, float dispersion, float smoothness,
+    float reflection, float caustics, float bloom
 ) {
     float2 uv = (position / size) * 2.0 - 1.0;
     uv.x *= size.x / size.y;
@@ -100,10 +106,14 @@ using namespace metal;
     half3 color = mix(c1.rgb, c2.rgb, half(flow));
     color = mix(color, c3.rgb, half(0.5 + 0.5 * sin(time * 0.7 + uv.y * 8.0)) * 0.55h);
     float edge = 1.0 - smoothstep(radius - 0.025, radius, d);
-    float fresnel = pow(saturate(d / radius), 3.0);
-    float aura = exp(-max(0.0, d - radius) * 16.0) * glow * 0.2;
+    float fresnel = pow(saturate(d / radius), mix(1.4, 4.0, smoothness));
+    float caustic = pow(saturate(1.0 - abs(sin(flow * 12.0 + d * 18.0 - time))), 8.0) * caustics;
+    color += mix(c1.rgb, half3(1.0h), 0.65h) * half(caustic * 0.32);
+    color += half3(half(fresnel * dispersion * 0.18), 0.0h, half((1.0 - fresnel) * dispersion * 0.22));
+    float aura = exp(-max(0.0, d - radius) * (16.0 - bloom * 5.0)) * glow * 0.2;
     half3 background = half3(0.015h, 0.025h, 0.055h);
-    half3 orb = color * half(0.55 + fresnel * 0.9) + half3(fresnel * 0.3);
+    half3 reflected = mix(c2.rgb, half3(0.86h, 0.94h, 1.0h), half(saturate(uv.y * 0.5 + 0.5)));
+    half3 orb = mix(color * half(0.55 + fresnel * 0.9), reflected, half(fresnel * reflection * 0.42)) + half3(fresnel * 0.3);
     return half4(mix(background + c1.rgb * half(aura), orb, half(edge)), 1.0h);
 }`;
 }

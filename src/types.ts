@@ -10,6 +10,10 @@ export type OrbConfig = {
   refraction: number;
   thickness: number;
   dispersion: number;
+  smoothness: number;
+  reflection: number;
   glow: number;
   glowRadius: number;
+  caustics: number;
+  bloom: number;
 };

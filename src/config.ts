@@ -14,8 +14,12 @@ const numericLimits: Record<
   refraction: [1, 2],
   thickness: [0, 1],
   dispersion: [0, 1],
+  smoothness: [0, 1],
+  reflection: [0, 1.5],
   glow: [0, 2],
   glowRadius: [0.5, 2],
+  caustics: [0, 2],
+  bloom: [0, 1.5],
 };
 const colorPattern = /^#[0-9a-f]{6}$/i;
 
