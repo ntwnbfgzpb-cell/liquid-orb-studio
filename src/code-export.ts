@@ -81,7 +81,7 @@ using namespace metal;
     float flow = 0.5 + 0.5 * sin(angle * (3.0 + detail * 3.0) + time + d * 10.0);
     half3 color = mix(c1.rgb, c2.rgb, half(flow));
     color = mix(color, c3.rgb, half(0.5 + 0.5 * sin(time * 0.7 + uv.y * 8.0)) * 0.55h);
-    float edge = smoothstep(radius, radius - 0.025, d);
+    float edge = 1.0 - smoothstep(radius - 0.025, radius, d);
     float fresnel = pow(saturate(d / radius), 3.0);
     float aura = exp(-max(0.0, d - radius) * 16.0) * glow * 0.2;
     half3 background = half3(0.015h, 0.025h, 0.055h);
