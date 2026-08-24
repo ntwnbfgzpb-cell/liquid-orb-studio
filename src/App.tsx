@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Camera,
   Download,
+  FileCode2,
   Link,
   Pause,
   Play,
@@ -11,6 +12,13 @@ import {
 import { presets } from "./presets";
 import type { OrbConfig } from "./types";
 import { OrbRenderer } from "./renderer";
+import { decodeConfig, encodeConfig } from "./config";
+import {
+  createMetalShader,
+  createStandaloneWeb,
+  createSwiftUI,
+  downloadText,
+} from "./code-export";
 const copy = (x: OrbConfig) => JSON.parse(JSON.stringify(x)) as OrbConfig;
 const groups = [
   {
@@ -50,10 +58,7 @@ export function App() {
     renderer = useRef<OrbRenderer | null>(null);
   const [config, setConfig] = useState<OrbConfig>(() => {
     try {
-      const h = location.hash.slice(1);
-      return h
-        ? (JSON.parse(decodeURIComponent(atob(h))) as OrbConfig)
-        : copy(presets[0]);
+      return decodeConfig(location.hash.slice(1));
     } catch {
       return copy(presets[0]);
     }
@@ -61,16 +66,35 @@ export function App() {
   const [ready, setReady] = useState(false),
     [paused, setPaused] = useState(false),
     [fps, setFps] = useState(0),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [error, setError] = useState(""),
+    [exportOpen, setExportOpen] = useState(false);
   useEffect(() => {
-    const r = new OrbRenderer(canvas.current!);
+    let active = true;
+    const r = new OrbRenderer(canvas.current!, (message) => {
+      if (active) setError(message);
+    });
     renderer.current = r;
     r.config = config;
     r.init()
-      .then(() => setReady(true))
-      .catch(() => setReady(false));
+      .then(() => {
+        if (active) setReady(true);
+      })
+      .catch((reason: unknown) => {
+        if (active) {
+          setReady(false);
+          setError(
+            reason instanceof Error ? reason.message : "WebGPU 初始化失敗",
+          );
+        }
+      });
     const id = setInterval(() => setFps(r.fps), 600);
-    return () => clearInterval(id);
+    return () => {
+      active = false;
+      clearInterval(id);
+      r.destroy();
+      renderer.current = null;
+    };
   }, []);
   useEffect(() => {
     if (renderer.current) renderer.current.config = config;
@@ -82,9 +106,13 @@ export function App() {
     setTimeout(() => setNotice(""), 1800);
   };
   const share = async () => {
-    location.hash = btoa(encodeURIComponent(JSON.stringify(config)));
-    await navigator.clipboard?.writeText(location.href);
-    flash("分享連結已複製");
+    location.hash = encodeConfig(config);
+    try {
+      await navigator.clipboard.writeText(location.href);
+      flash("分享連結已複製");
+    } catch {
+      flash("網址已更新，請從瀏覽器網址列複製");
+    }
   };
   const shot = () => {
     const a = document.createElement("a");
@@ -93,16 +121,16 @@ export function App() {
     a.click();
     flash("PNG 已下載");
   };
-  const exp = () => {
-    const blob = new Blob([JSON.stringify(config, null, 2)], {
-        type: "application/json",
-      }),
-      a = document.createElement("a");
-    a.download = "liquid-orb-config.json";
-    a.href = URL.createObjectURL(blob);
-    a.click();
-    URL.revokeObjectURL(a.href);
-    flash("設定檔已匯出");
+  const exportWeb = () => {
+    downloadText("liquid-orb.html", createStandaloneWeb(config), "text/html");
+    setExportOpen(false);
+    flash("獨立 Web 頁面已匯出");
+  };
+  const exportSwiftUI = () => {
+    downloadText("LiquidOrbView.swift", createSwiftUI(config), "text/x-swift");
+    downloadText("LiquidOrb.metal", createMetalShader(), "text/plain");
+    setExportOpen(false);
+    flash("SwiftUI 與 Metal 程式碼已匯出");
   };
   return (
     <main>
@@ -120,10 +148,35 @@ export function App() {
             <Camera />
             截圖
           </button>
-          <button className="primary" onClick={exp}>
-            <Download />
-            匯出
-          </button>
+          <div className="export-wrap">
+            <button
+              className="primary"
+              onClick={() => setExportOpen((open) => !open)}
+              aria-expanded={exportOpen}
+              aria-haspopup="menu"
+            >
+              <Download />
+              匯出
+            </button>
+            {exportOpen ? (
+              <div className="export-menu" role="menu">
+                <button role="menuitem" onClick={exportWeb}>
+                  <FileCode2 />
+                  <span>
+                    <b>獨立 Web 頁面</b>
+                    <small>單一 HTML，可直接開啟</small>
+                  </span>
+                </button>
+                <button role="menuitem" onClick={exportSwiftUI}>
+                  <FileCode2 />
+                  <span>
+                    <b>SwiftUI + Metal</b>
+                    <small>兩個檔案，可加入 Apple 專案</small>
+                  </span>
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </header>
       <section className="workspace">
@@ -152,7 +205,7 @@ export function App() {
           <canvas ref={canvas} />
           {!ready && (
             <div className="fallback">
-              此瀏覽器尚未啟用 WebGPU
+              {error || "正在啟動 WebGPU…"}
               <br />
               <small>請使用最新版 Chrome、Edge 或支援 WebGPU 的瀏覽器</small>
             </div>

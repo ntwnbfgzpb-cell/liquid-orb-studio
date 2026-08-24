@@ -1,4 +1,4 @@
-export const shader=`
+export const shader = `
 struct U { resolution:vec2f, time:f32, speed:f32, c1:vec4f, c2:vec4f, c3:vec4f, shape:vec4f, glass:vec4f, glow:vec4f }
 @group(0) @binding(0) var<uniform> u:U;
 fn hash(p:vec3f)->f32{return fract(sin(dot(p,vec3f(127.1,311.7,74.7)))*43758.5453);}

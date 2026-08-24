@@ -7,7 +7,7 @@
 - 6 組原創動態玻璃球預設
 - 顏色、動態、形狀、折射、色散與光暈即時控制
 - URL hash 分享目前設定
-- PNG 截圖與 JSON 設定匯出
+- PNG 截圖、獨立 Web 頁面與 SwiftUI View 匯出
 - WebGPU 支援偵測、FPS 顯示、暫停與重設
 - 桌面與行動版響應式介面
 
@@ -19,9 +19,12 @@
 npm install
 npm run dev
 npm run build
+npm run check
 ```
 
 建議使用最新版 Chrome 或 Edge，並確認 WebGPU 已啟用。
+
+GitHub Pages 會由 Actions 執行測試、production build 並自動部署。
 
 ## 授權
 

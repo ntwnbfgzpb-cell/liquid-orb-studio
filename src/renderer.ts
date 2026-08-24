@@ -18,12 +18,25 @@ export class OrbRenderer {
   lastFrame = this.start;
   paused = false;
   config!: OrbConfig;
-  constructor(public canvas: HTMLCanvasElement) {}
+  private animationFrame = 0;
+  private destroyed = false;
+  constructor(
+    public canvas: HTMLCanvasElement,
+    private onError: (message: string) => void = () => undefined,
+  ) {}
   async init() {
     if (!navigator.gpu) throw Error("WebGPU unavailable");
     const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) throw Error("No GPU adapter");
     this.device = await adapter.requestDevice();
+    if (this.destroyed) {
+      this.device.destroy();
+      return;
+    }
+    void this.device.lost.then((info) => {
+      if (!this.destroyed)
+        this.onError(`GPU 裝置已中斷：${info.message || info.reason}`);
+    });
     this.context = this.canvas.getContext(
       "webgpu",
     ) as unknown as GPUCanvasContext;
@@ -48,7 +61,7 @@ export class OrbRenderer {
       layout: this.pipeline.getBindGroupLayout(0),
       entries: [{ binding: 0, resource: { buffer: this.buffer } }],
     });
-    requestAnimationFrame(this.draw);
+    this.animationFrame = requestAnimationFrame(this.draw);
   }
   draw = (now: number) => {
     this.resize();
@@ -66,15 +79,7 @@ export class OrbRenderer {
       }
       const c = this.config;
       const data = new Float32Array(40);
-      data.set(
-        [
-          this.canvas.width,
-          this.canvas.height,
-          this.time,
-          c.speed,
-        ],
-        0,
-      );
+      data.set([this.canvas.width, this.canvas.height, this.time, c.speed], 0);
       data.set(hex(c.colors[0]), 4);
       data.set(hex(c.colors[1]), 8);
       data.set(hex(c.colors[2]), 12);
@@ -99,8 +104,13 @@ export class OrbRenderer {
       pass.end();
       this.device.queue.submit([enc.finish()]);
     }
-    requestAnimationFrame(this.draw);
+    if (!this.destroyed) this.animationFrame = requestAnimationFrame(this.draw);
   };
+  destroy() {
+    this.destroyed = true;
+    cancelAnimationFrame(this.animationFrame);
+    this.device?.destroy();
+  }
   resize() {
     const d = Math.min(devicePixelRatio, 2),
       w = Math.floor(this.canvas.clientWidth * d),
