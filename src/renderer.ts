@@ -14,6 +14,8 @@ export class OrbRenderer {
   frame = 0;
   fps = 0;
   last = this.start;
+  time = 0;
+  lastFrame = this.start;
   paused = false;
   config!: OrbConfig;
   constructor(public canvas: HTMLCanvasElement) {}
@@ -51,7 +53,12 @@ export class OrbRenderer {
   draw = (now: number) => {
     this.resize();
     if (this.config) {
-      if (!this.paused) this.frame++;
+      const delta = Math.min((now - this.lastFrame) / 1000, 0.1);
+      this.lastFrame = now;
+      if (!this.paused) {
+        this.frame++;
+        this.time += delta;
+      }
       if (now - this.last > 500) {
         this.fps = Math.round((this.frame * 1000) / (now - this.last));
         this.frame = 0;
@@ -63,7 +70,7 @@ export class OrbRenderer {
         [
           this.canvas.width,
           this.canvas.height,
-          (now - this.start) / 1000,
+          this.time,
           c.speed,
         ],
         0,
