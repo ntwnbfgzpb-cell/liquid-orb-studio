@@ -105,6 +105,17 @@ export function App() {
     if (renderer.current) renderer.current.config = config;
   }, [config]);
   useEffect(() => {
+    const syncSharedConfig = () => {
+      try {
+        setConfig(decodeConfig(location.hash.slice(1)));
+      } catch {
+        setConfig(copy(presets[0]));
+      }
+    };
+    window.addEventListener("hashchange", syncSharedConfig);
+    return () => window.removeEventListener("hashchange", syncSharedConfig);
+  }, []);
+  useEffect(() => {
     if (!exportOpen) return;
     const closeOnPointer = (event: PointerEvent) => {
       if (!exportMenu.current?.contains(event.target as Node))
