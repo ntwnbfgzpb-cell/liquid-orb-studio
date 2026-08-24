@@ -213,15 +213,128 @@ button svg {
   position: absolute;
   inset: 0;
   display: grid;
-  place-content: center;
+  place-items: center;
   text-align: center;
   color: #9db0c9;
-  background: radial-gradient(circle, #10213b, #040710);
+  background:
+    radial-gradient(circle at 50% 45%, #112744 0, #071224 42%, #02050d 72%),
+    #02050d;
+  isolation: isolate;
 }
-.fallback small {
-  display: block;
-  margin-top: 8px;
+.fallback::before {
+  content: "";
+  position: absolute;
+  width: min(58vw, 520px);
+  aspect-ratio: 1.6;
+  top: 58%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, var(--orb-primary, #38d9ff) 0, transparent 68%);
+  filter: blur(42px);
+  opacity: 0.16;
+}
+.fallback-orb {
+  --orb-primary: #38d9ff;
+  --orb-secondary: #2563eb;
+  --orb-highlight: #8b5cf6;
+  --orb-speed: 5s;
+  --orb-scale: 1;
+  position: relative;
+  width: min(48vh, 48vw, 450px);
+  aspect-ratio: 1;
+  transform: scale(var(--orb-scale));
+  border-radius: 50%;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 30% 22%, #fff 0 2%, #ffffffbb 3%, transparent 12%),
+    radial-gradient(circle at 62% 68%, var(--orb-highlight) 0, transparent 42%),
+    conic-gradient(from 30deg, var(--orb-primary), var(--orb-secondary), var(--orb-highlight), var(--orb-primary));
+  border: 1px solid #ffffffbb;
+  box-shadow:
+    inset 22px 18px 45px #ffffff52,
+    inset -32px -30px 58px #020617aa,
+    0 0 32px color-mix(in srgb, var(--orb-primary) 68%, transparent),
+    0 28px 80px color-mix(in srgb, var(--orb-secondary) 34%, transparent);
+  animation: fallback-float var(--orb-speed) ease-in-out infinite alternate;
+}
+.fallback-orb::before,
+.fallback-orb::after,
+.fallback-orb i,
+.fallback-orb b {
+  content: "";
+  position: absolute;
+  border-radius: 45% 55% 58% 42% / 52% 46% 54% 48%;
+  filter: blur(9px);
+  mix-blend-mode: screen;
+}
+.fallback-orb::before {
+  inset: 12% 4% 32% 22%;
+  border: 13px solid #ffffff8a;
+  border-left-color: transparent;
+  transform: rotate(-28deg);
+  animation: fallback-flow calc(var(--orb-speed) * 1.3) linear infinite;
+}
+.fallback-orb::after {
+  inset: 42% 12% 8% 18%;
+  border: 16px solid color-mix(in srgb, var(--orb-primary) 76%, white);
+  border-top-color: transparent;
+  opacity: 0.72;
+  animation: fallback-flow var(--orb-speed) linear infinite reverse;
+}
+.fallback-orb i {
+  inset: 18% 42% 34% 8%;
+  background: linear-gradient(130deg, #fff9, var(--orb-primary), transparent);
+  animation: fallback-drift calc(var(--orb-speed) * 0.8) ease-in-out infinite alternate;
+}
+.fallback-orb b {
+  inset: 34% 7% 17% 46%;
+  background: linear-gradient(25deg, transparent, var(--orb-highlight), #fff8);
+  animation: fallback-drift var(--orb-speed) ease-in-out infinite alternate-reverse;
+}
+.fallback-orb.paused,
+.fallback-orb.paused::before,
+.fallback-orb.paused::after,
+.fallback-orb.paused i,
+.fallback-orb.paused b {
+  animation-play-state: paused;
+}
+.fallback-note {
+  position: absolute;
+  bottom: 34px;
+  display: grid;
+  gap: 3px;
+  padding: 8px 14px;
+  border: 1px solid #283a55;
+  border-radius: 9px;
+  background: #07101dcc;
+  backdrop-filter: blur(12px);
+}
+.fallback-note strong {
+  color: #dbeafe;
+  font-size: 12px;
+}
+.fallback-note small {
   color: #64748b;
+  font-size: 10px;
+}
+@keyframes fallback-float {
+  from {
+    translate: 0 -5px;
+    rotate: -1deg;
+  }
+  to {
+    translate: 0 7px;
+    rotate: 1deg;
+  }
+}
+@keyframes fallback-flow {
+  to {
+    transform: rotate(332deg) scale(1.06);
+  }
+}
+@keyframes fallback-drift {
+  to {
+    transform: translate(12%, -8%) rotate(24deg) scale(1.12);
+  }
 }
 .inspector {
   display: flex;
@@ -303,6 +416,9 @@ footer {
 }
 .status.ok {
   color: #38e59b;
+}
+.status.compat {
+  color: #fbbf24;
 }
 .transport {
   position: absolute;

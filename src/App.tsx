@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import {
   Camera,
   Download,
@@ -241,9 +242,28 @@ export function App() {
           <canvas ref={canvas} />
           {!ready && (
             <div className="fallback">
-              {error || "正在啟動 WebGPU…"}
-              <br />
-              <small>請使用最新版 Chrome、Edge 或支援 WebGPU 的瀏覽器</small>
+              <div
+                className={paused ? "fallback-orb paused" : "fallback-orb"}
+                aria-hidden="true"
+                style={
+                  {
+                    "--orb-primary": config.colors[0],
+                    "--orb-secondary": config.colors[1],
+                    "--orb-highlight": config.colors[2],
+                    "--orb-speed": `${Math.max(2.8, 8 - config.speed * 3)}s`,
+                    "--orb-scale": config.scale,
+                  } as CSSProperties
+                }
+              >
+                <i />
+                <b />
+              </div>
+              <div className="fallback-note">
+                <strong>相容模式預覽</strong>
+                <small>
+                  {error || "正在啟動 WebGPU…"}；目前以動態玻璃效果顯示
+                </small>
+              </div>
             </div>
           )}
           <div className="stage-label">{config.name}</div>
@@ -293,15 +313,13 @@ export function App() {
         </aside>
       </section>
       <footer>
-        <div className={ready ? "status ok" : "status"}>
+        <div className={ready ? "status ok" : "status compat"}>
           <i />
-          {ready ? "WebGPU 就緒" : "WebGPU 不可用"}
+          {ready ? "WebGPU 就緒" : "相容模式"}
         </div>
         <span>{fps || "--"} FPS</span>
         <div className="transport">
           <button
-            disabled={!ready}
-            title={!ready ? "WebGPU 就緒後才能控制動畫" : undefined}
             onClick={() => {
               const p = !paused;
               setPaused(p);
