@@ -27,7 +27,12 @@ export class OrbRenderer {
   ) {}
   async init() {
     if (!navigator.gpu) throw Error("瀏覽器未提供 WebGPU API");
-    const adapter = await navigator.gpu.requestAdapter();
+    let adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) {
+      adapter = await navigator.gpu.requestAdapter({
+        featureLevel: "compatibility",
+      });
+    }
     if (!adapter) throw Error("此裝置沒有可用的 WebGPU 繪圖介面");
     this.device = await adapter.requestDevice();
     if (this.destroyed) {
