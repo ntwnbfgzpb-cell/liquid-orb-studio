@@ -10,5 +10,5 @@ fn field(p:vec3f)->f32{let t=u.time*u.speed;let n=noise(p*(2.+u.shape.y*3.)+vec3
  for(var i=0;i<96;i++){p=ro+rd*t;let d=field(p);if(abs(d)<.002){hit=true;break;}t+=d*.68;if(t>6.){break;}}
  let bg=mix(vec3f(.015,.025,.055),vec3f(.005,.008,.018),length(uv));if(!hit){let aura=exp(-max(0.,length(uv)-.55)*8.)*.06*u.glow.x;return vec4f(bg+aura*u.c1.rgb,1);}
  let e=.004;let n=normalize(vec3f(field(p+vec3f(e,0,0))-field(p-vec3f(e,0,0)),field(p+vec3f(0,e,0))-field(p-vec3f(0,e,0)),field(p+vec3f(0,0,e))-field(p-vec3f(0,0,e))));let fres=pow(1.-max(0.,dot(-rd,n)),2.4);let flow=noise(p*(3.+u.shape.y*4.)+u.time*u.speed*.18);let bands=.5+.5*sin((p.x+p.y*.7-p.z*.4)*9.+flow*8.+u.time*u.speed);
- let col=mix(u.c1.rgb,u.c2.rgb,smoothstep(.15,.85,flow));let inner=mix(col,u.c3.rgb,bands*.62);let spec=pow(max(0.,dot(reflect(rd,n),normalize(vec3f(-.4,.7,.5)))),48.)*1.5;let glass=mix(inner*.35,inner, fres)+fres*.8+spec;glass+=u.glass.z*vec3f(fres*.2,0,fres*.35);return vec4f(glass,1);
+ let col=mix(u.c1.rgb,u.c2.rgb,smoothstep(.15,.85,flow));let inner=mix(col,u.c3.rgb,bands*.62);let spec=pow(max(0.,dot(reflect(rd,n),normalize(vec3f(-.4,.7,.5)))),48.)*1.5;var glass=mix(inner*.35,inner, fres)+fres*.8+spec;glass+=u.glass.z*vec3f(fres*.2,0,fres*.35);return vec4f(glass,1);
 }`;

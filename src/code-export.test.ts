@@ -7,6 +7,7 @@ import {
   createSwiftUI,
 } from "./code-export";
 import { presets } from "./presets";
+import { shader } from "./shader";
 
 describe("code exports", () => {
   it("creates a self-contained WebGPU HTML document", () => {
@@ -37,5 +38,10 @@ describe("code exports", () => {
     );
     expect(strFromU8(files["LiquidOrb.metal"])).toContain("[[ stitchable ]]");
     expect(strFromU8(files["README.txt"])).toContain("iOS 17+");
+  });
+
+  it("declares mutated WGSL values as variables", () => {
+    expect(shader).toContain("var glass=");
+    expect(shader).not.toContain("let glass=");
   });
 });
