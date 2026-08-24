@@ -1,19 +1,22 @@
 import { presets } from "./presets";
 import type { OrbConfig } from "./types";
 
-const numericKeys: (keyof OrbConfig)[] = [
-  "speed",
-  "turbulence",
-  "swirl",
-  "scale",
-  "detail",
-  "asymmetry",
-  "refraction",
-  "thickness",
-  "dispersion",
-  "glow",
-  "glowRadius",
-];
+const numericLimits: Record<
+  Exclude<keyof OrbConfig, "name" | "colors">,
+  readonly [number, number]
+> = {
+  speed: [0, 2],
+  turbulence: [0, 1],
+  swirl: [0, 1],
+  scale: [0.65, 1.25],
+  detail: [0, 1],
+  asymmetry: [0, 1],
+  refraction: [1, 2],
+  thickness: [0, 1],
+  dispersion: [0, 1],
+  glow: [0, 2],
+  glowRadius: [0.5, 2],
+};
 const colorPattern = /^#[0-9a-f]{6}$/i;
 
 export function normalizeConfig(value: unknown): OrbConfig {
@@ -34,10 +37,13 @@ export function normalizeConfig(value: unknown): OrbConfig {
         : fallback.colors[index],
     ) as OrbConfig["colors"];
   }
-  for (const key of numericKeys) {
+  for (const [key, [min, max]] of Object.entries(numericLimits) as [
+    keyof typeof numericLimits,
+    readonly [number, number],
+  ][]) {
     const value = candidate[key];
     if (typeof value === "number" && Number.isFinite(value)) {
-      (next as Record<string, unknown>)[key] = value;
+      (next as Record<string, unknown>)[key] = Math.min(max, Math.max(min, value));
     }
   }
   return next;

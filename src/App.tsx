@@ -74,7 +74,10 @@ export function App() {
   useEffect(() => {
     let active = true;
     const r = new OrbRenderer(canvas.current!, (message) => {
-      if (active) setError(message);
+      if (active) {
+        setReady(false);
+        setError(message);
+      }
     });
     renderer.current = r;
     r.config = config;
@@ -145,9 +148,45 @@ export function App() {
       .catch(() => flash("網址已更新，請從瀏覽器網址列複製"));
   };
   const shot = () => {
+    let href: string;
+    if (ready) {
+      href = canvas.current!.toDataURL("image/png");
+    } else {
+      const output = document.createElement("canvas");
+      output.width = 1200;
+      output.height = 1200;
+      const context = output.getContext("2d");
+      if (!context) {
+        flash("無法建立截圖");
+        return;
+      }
+      context.fillStyle = "#02050d";
+      context.fillRect(0, 0, output.width, output.height);
+      const aura = context.createRadialGradient(600, 560, 100, 600, 560, 520);
+      aura.addColorStop(0, `${config.colors[0]}88`);
+      aura.addColorStop(0.58, `${config.colors[1]}44`);
+      aura.addColorStop(1, "transparent");
+      context.fillStyle = aura;
+      context.fillRect(0, 0, output.width, output.height);
+      const orb = context.createRadialGradient(480, 390, 40, 600, 590, 390);
+      orb.addColorStop(0, "#ffffff");
+      orb.addColorStop(0.12, config.colors[0]);
+      orb.addColorStop(0.58, config.colors[2]);
+      orb.addColorStop(1, config.colors[1]);
+      context.beginPath();
+      context.arc(600, 570, 360 * config.scale, 0, Math.PI * 2);
+      context.fillStyle = orb;
+      context.shadowColor = config.colors[0];
+      context.shadowBlur = 70 * config.glow;
+      context.fill();
+      context.lineWidth = 4;
+      context.strokeStyle = "#ffffffaa";
+      context.stroke();
+      href = output.toDataURL("image/png");
+    }
     const a = document.createElement("a");
     a.download = "liquid-orb.png";
-    a.href = canvas.current!.toDataURL("image/png");
+    a.href = href;
     a.click();
     flash("PNG 已下載");
   };
@@ -179,8 +218,7 @@ export function App() {
           </button>
           <button
             onClick={shot}
-            disabled={!ready}
-            title={!ready ? "WebGPU 就緒後才能截圖" : undefined}
+            title={!ready ? "下載相容模式預覽 PNG" : "下載 WebGPU 畫面 PNG"}
           >
             <Camera />
             截圖
@@ -329,7 +367,14 @@ export function App() {
             {paused ? <Play /> : <Pause />}
             {paused ? "播放" : "暫停"}
           </button>
-          <button onClick={() => selectPreset(presets[0])}>
+          <button
+            onClick={() =>
+              selectPreset(
+                presets.find((preset) => preset.name === config.name) ??
+                  presets[0],
+              )
+            }
+          >
             <RotateCcw />
             重設
           </button>

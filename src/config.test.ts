@@ -16,4 +16,17 @@ describe("shared configuration", () => {
     });
     expect(config).toEqual(presets[0]);
   });
+
+  it("clamps shared numeric values to the editor limits", () => {
+    const config = normalizeConfig({
+      speed: 99,
+      scale: -4,
+      refraction: 1.6,
+      glowRadius: 0,
+    });
+    expect(config.speed).toBe(2);
+    expect(config.scale).toBe(0.65);
+    expect(config.refraction).toBe(1.6);
+    expect(config.glowRadius).toBe(0.5);
+  });
 });
