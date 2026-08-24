@@ -2,7 +2,7 @@ import type { OrbConfig } from "./types";
 export const presets: OrbConfig[] = [
   {
     name: "Aqua Core",
-    colors: ["#38d9ff", "#2563eb", "#8b5cf6"],
+    colors: ["#38d9ff", "#8b5cf6", "#6ee7ff"],
     speed: 1.1,
     turbulence: 0.62,
     swirl: 0.46,
