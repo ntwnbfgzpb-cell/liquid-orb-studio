@@ -20,12 +20,13 @@ export class OrbRenderer {
   config!: OrbConfig;
   private animationFrame = 0;
   private destroyed = false;
+  private failed = false;
   constructor(
     public canvas: HTMLCanvasElement,
     private onError: (message: string) => void = () => undefined,
   ) {}
   async init() {
-    if (!navigator.gpu) throw Error("WebGPU unavailable");
+    if (!navigator.gpu) throw Error("瀏覽器未提供 WebGPU API");
     const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) throw Error("此裝置沒有可用的 WebGPU 繪圖介面");
     this.device = await adapter.requestDevice();
@@ -37,9 +38,9 @@ export class OrbRenderer {
       if (!this.destroyed)
         this.onError(`GPU 裝置已中斷：${info.message || info.reason}`);
     });
-    this.context = this.canvas.getContext(
-      "webgpu",
-    ) as unknown as GPUCanvasContext;
+    const context = this.canvas.getContext("webgpu");
+    if (!context) throw Error("瀏覽器無法建立 WebGPU Canvas");
+    this.context = context as unknown as GPUCanvasContext;
     const format = navigator.gpu.getPreferredCanvasFormat();
     this.context.configure({
       device: this.device,
@@ -51,19 +52,47 @@ export class OrbRenderer {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     const module = this.device.createShaderModule({ code: shader });
-    this.pipeline = this.device.createRenderPipeline({
+    const compilation = await module.getCompilationInfo();
+    const shaderErrors = compilation.messages.filter(
+      (message) => message.type === "error",
+    );
+    if (shaderErrors.length) {
+      throw Error(
+        `WGSL 編譯失敗：${shaderErrors.map((message) => message.message).join("；")}`,
+      );
+    }
+    this.device.pushErrorScope("validation");
+    this.pipeline = await this.device.createRenderPipelineAsync({
       layout: "auto",
       vertex: { module, entryPoint: "vs" },
       fragment: { module, entryPoint: "fs", targets: [{ format }] },
       primitive: { topology: "triangle-list" },
     });
+    const pipelineError = await this.device.popErrorScope();
+    if (pipelineError) throw Error(`WebGPU pipeline 失敗：${pipelineError.message}`);
     this.bind = this.device.createBindGroup({
       layout: this.pipeline.getBindGroupLayout(0),
       entries: [{ binding: 0, resource: { buffer: this.buffer } }],
     });
-    this.animationFrame = requestAnimationFrame(this.draw);
+    this.device.pushErrorScope("validation");
+    this.render(performance.now());
+    await this.device.queue.onSubmittedWorkDone();
+    const firstFrameError = await this.device.popErrorScope();
+    if (firstFrameError)
+      throw Error(`WebGPU 第一幀失敗：${firstFrameError.message}`);
+    if (!this.destroyed) this.animationFrame = requestAnimationFrame(this.draw);
   }
   draw = (now: number) => {
+    try {
+      this.render(now);
+    } catch (reason) {
+      this.fail(reason);
+      return;
+    }
+    if (!this.destroyed && !this.failed)
+      this.animationFrame = requestAnimationFrame(this.draw);
+  };
+  private render(now: number) {
     this.resize();
     if (this.config) {
       const delta = Math.min((now - this.lastFrame) / 1000, 0.1);
@@ -104,8 +133,16 @@ export class OrbRenderer {
       pass.end();
       this.device.queue.submit([enc.finish()]);
     }
-    if (!this.destroyed) this.animationFrame = requestAnimationFrame(this.draw);
-  };
+  }
+  private fail(reason: unknown) {
+    if (this.failed || this.destroyed) return;
+    this.failed = true;
+    this.onError(
+      reason instanceof Error
+        ? `WebGPU 執行失敗：${reason.message}`
+        : "WebGPU 執行失敗",
+    );
+  }
   destroy() {
     this.destroyed = true;
     cancelAnimationFrame(this.animationFrame);
